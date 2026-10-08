@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, doc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -57,32 +57,73 @@ export function useOrders(riskFilter?: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (db) {
-      try {
-        const collRef = collection(db, 'orders');
-        const q = query(collRef);
-        const unsub = onSnapshot(
-          q,
-          (snapshot) => {
-            let list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-            if (riskFilter) {
-              list = list.filter((o: any) => o.riskLevel?.toUpperCase() === riskFilter.toUpperCase());
+    let unsub: (() => void) | null = null;
+    let isMounted = true;
+
+    async function loadData() {
+      if (db) {
+        try {
+          const collRef = collection(db, 'orders');
+          const q = query(collRef);
+          unsub = onSnapshot(
+            q,
+            async (snapshot) => {
+              let list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+              if (riskFilter && list.length > 0) {
+                list = list.filter((o: any) => o.riskLevel?.toUpperCase() === riskFilter.toUpperCase());
+              }
+              if (list.length > 0) {
+                if (isMounted) {
+                  setOrders(list);
+                  setLoading(false);
+                }
+              } else {
+                try {
+                  const apiOrders = await fetchOrders(riskFilter);
+                  if (isMounted) {
+                    setOrders(apiOrders || []);
+                  }
+                } catch (e: any) {
+                  if (isMounted) setError(e.message);
+                } finally {
+                  if (isMounted) setLoading(false);
+                }
+              }
+            },
+            async (err) => {
+              console.warn('Firestore orders snapshot error, falling back to API:', err);
+              try {
+                const apiOrders = await fetchOrders(riskFilter);
+                if (isMounted) setOrders(apiOrders || []);
+              } catch (e: any) {
+                if (isMounted) setError(e.message);
+              } finally {
+                if (isMounted) setLoading(false);
+              }
             }
-            setOrders(list);
-            setLoading(false);
-          },
-          (err) => {
-            console.warn('Firestore orders snapshot error, falling back to API:', err);
-            fetchOrders(riskFilter).then(setOrders).catch((e) => setError(e.message)).finally(() => setLoading(false));
-          }
-        );
-        return () => unsub();
-      } catch (err: any) {
-        fetchOrders(riskFilter).then(setOrders).catch((e) => setError(e.message)).finally(() => setLoading(false));
+          );
+          return;
+        } catch (err: any) {
+          console.warn('Firestore subscription exception, falling back to API:', err);
+        }
       }
-    } else {
-      fetchOrders(riskFilter).then(setOrders).catch((e) => setError(e.message)).finally(() => setLoading(false));
+
+      try {
+        const apiOrders = await fetchOrders(riskFilter);
+        if (isMounted) setOrders(apiOrders || []);
+      } catch (e: any) {
+        if (isMounted) setError(e.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+      if (unsub) unsub();
+    };
   }, [user, riskFilter]);
 
   return { orders, loading, error };
@@ -94,27 +135,64 @@ export function useCustomers() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (db) {
-      try {
-        const q = collection(db, 'customers');
-        const unsub = onSnapshot(
-          q,
-          (snapshot) => {
-            const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-            setCustomers(list);
-            setLoading(false);
-          },
-          (err) => {
-            fetchCustomers().then(setCustomers).catch((e) => setError(e.message)).finally(() => setLoading(false));
-          }
-        );
-        return () => unsub();
-      } catch {
-        fetchCustomers().then(setCustomers).catch((e) => setError(e.message)).finally(() => setLoading(false));
+    let unsub: (() => void) | null = null;
+    let isMounted = true;
+
+    async function loadData() {
+      if (db) {
+        try {
+          const q = collection(db, 'customers');
+          unsub = onSnapshot(
+            q,
+            async (snapshot) => {
+              const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+              if (list.length > 0) {
+                if (isMounted) {
+                  setCustomers(list);
+                  setLoading(false);
+                }
+              } else {
+                try {
+                  const apiCust = await fetchCustomers();
+                  if (isMounted) setCustomers(apiCust || []);
+                } catch (e: any) {
+                  if (isMounted) setError(e.message);
+                } finally {
+                  if (isMounted) setLoading(false);
+                }
+              }
+            },
+            async (err) => {
+              try {
+                const apiCust = await fetchCustomers();
+                if (isMounted) setCustomers(apiCust || []);
+              } catch (e: any) {
+                if (isMounted) setError(e.message);
+              } finally {
+                if (isMounted) setLoading(false);
+              }
+            }
+          );
+          return;
+        } catch {}
       }
-    } else {
-      fetchCustomers().then(setCustomers).catch((e) => setError(e.message)).finally(() => setLoading(false));
+
+      try {
+        const apiCust = await fetchCustomers();
+        if (isMounted) setCustomers(apiCust || []);
+      } catch (e: any) {
+        if (isMounted) setError(e.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+      if (unsub) unsub();
+    };
   }, []);
 
   return { customers, loading, error };
@@ -126,27 +204,64 @@ export function useVehicles() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (db) {
-      try {
-        const q = collection(db, 'vehicles');
-        const unsub = onSnapshot(
-          q,
-          (snapshot) => {
-            const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-            setVehicles(list);
-            setLoading(false);
-          },
-          (err) => {
-            fetchVehicles().then(setVehicles).catch((e) => setError(e.message)).finally(() => setLoading(false));
-          }
-        );
-        return () => unsub();
-      } catch {
-        fetchVehicles().then(setVehicles).catch((e) => setError(e.message)).finally(() => setLoading(false));
+    let unsub: (() => void) | null = null;
+    let isMounted = true;
+
+    async function loadData() {
+      if (db) {
+        try {
+          const q = collection(db, 'vehicles');
+          unsub = onSnapshot(
+            q,
+            async (snapshot) => {
+              const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+              if (list.length > 0) {
+                if (isMounted) {
+                  setVehicles(list);
+                  setLoading(false);
+                }
+              } else {
+                try {
+                  const apiVeh = await fetchVehicles();
+                  if (isMounted) setVehicles(apiVeh || []);
+                } catch (e: any) {
+                  if (isMounted) setError(e.message);
+                } finally {
+                  if (isMounted) setLoading(false);
+                }
+              }
+            },
+            async () => {
+              try {
+                const apiVeh = await fetchVehicles();
+                if (isMounted) setVehicles(apiVeh || []);
+              } catch (e: any) {
+                if (isMounted) setError(e.message);
+              } finally {
+                if (isMounted) setLoading(false);
+              }
+            }
+          );
+          return;
+        } catch {}
       }
-    } else {
-      fetchVehicles().then(setVehicles).catch((e) => setError(e.message)).finally(() => setLoading(false));
+
+      try {
+        const apiVeh = await fetchVehicles();
+        if (isMounted) setVehicles(apiVeh || []);
+      } catch (e: any) {
+        if (isMounted) setError(e.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+      if (unsub) unsub();
+    };
   }, []);
 
   return { vehicles, loading, error };
@@ -158,27 +273,64 @@ export function useDrivers() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (db) {
-      try {
-        const q = collection(db, 'drivers');
-        const unsub = onSnapshot(
-          q,
-          (snapshot) => {
-            const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-            setDrivers(list);
-            setLoading(false);
-          },
-          (err) => {
-            fetchDrivers().then(setDrivers).catch((e) => setError(e.message)).finally(() => setLoading(false));
-          }
-        );
-        return () => unsub();
-      } catch {
-        fetchDrivers().then(setDrivers).catch((e) => setError(e.message)).finally(() => setLoading(false));
+    let unsub: (() => void) | null = null;
+    let isMounted = true;
+
+    async function loadData() {
+      if (db) {
+        try {
+          const q = collection(db, 'drivers');
+          unsub = onSnapshot(
+            q,
+            async (snapshot) => {
+              const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+              if (list.length > 0) {
+                if (isMounted) {
+                  setDrivers(list);
+                  setLoading(false);
+                }
+              } else {
+                try {
+                  const apiDrv = await fetchDrivers();
+                  if (isMounted) setDrivers(apiDrv || []);
+                } catch (e: any) {
+                  if (isMounted) setError(e.message);
+                } finally {
+                  if (isMounted) setLoading(false);
+                }
+              }
+            },
+            async () => {
+              try {
+                const apiDrv = await fetchDrivers();
+                if (isMounted) setDrivers(apiDrv || []);
+              } catch (e: any) {
+                if (isMounted) setError(e.message);
+              } finally {
+                if (isMounted) setLoading(false);
+              }
+            }
+          );
+          return;
+        } catch {}
       }
-    } else {
-      fetchDrivers().then(setDrivers).catch((e) => setError(e.message)).finally(() => setLoading(false));
+
+      try {
+        const apiDrv = await fetchDrivers();
+        if (isMounted) setDrivers(apiDrv || []);
+      } catch (e: any) {
+        if (isMounted) setError(e.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+      if (unsub) unsub();
+    };
   }, []);
 
   return { drivers, loading, error };
@@ -190,27 +342,64 @@ export function usePackages() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (db) {
-      try {
-        const q = collection(db, 'packages');
-        const unsub = onSnapshot(
-          q,
-          (snapshot) => {
-            const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-            setPackages(list);
-            setLoading(false);
-          },
-          (err) => {
-            fetchPackages().then(setPackages).catch((e) => setError(e.message)).finally(() => setLoading(false));
-          }
-        );
-        return () => unsub();
-      } catch {
-        fetchPackages().then(setPackages).catch((e) => setError(e.message)).finally(() => setLoading(false));
+    let unsub: (() => void) | null = null;
+    let isMounted = true;
+
+    async function loadData() {
+      if (db) {
+        try {
+          const q = collection(db, 'packages');
+          unsub = onSnapshot(
+            q,
+            async (snapshot) => {
+              const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+              if (list.length > 0) {
+                if (isMounted) {
+                  setPackages(list);
+                  setLoading(false);
+                }
+              } else {
+                try {
+                  const apiPkg = await fetchPackages();
+                  if (isMounted) setPackages(apiPkg || []);
+                } catch (e: any) {
+                  if (isMounted) setError(e.message);
+                } finally {
+                  if (isMounted) setLoading(false);
+                }
+              }
+            },
+            async () => {
+              try {
+                const apiPkg = await fetchPackages();
+                if (isMounted) setPackages(apiPkg || []);
+              } catch (e: any) {
+                if (isMounted) setError(e.message);
+              } finally {
+                if (isMounted) setLoading(false);
+              }
+            }
+          );
+          return;
+        } catch {}
       }
-    } else {
-      fetchPackages().then(setPackages).catch((e) => setError(e.message)).finally(() => setLoading(false));
+
+      try {
+        const apiPkg = await fetchPackages();
+        if (isMounted) setPackages(apiPkg || []);
+      } catch (e: any) {
+        if (isMounted) setError(e.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+      if (unsub) unsub();
+    };
   }, []);
 
   return { packages, loading, error };
@@ -256,27 +445,64 @@ export function useRiskAnalysis() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (db) {
-      try {
-        const q = collection(db, 'risk_analysis');
-        const unsub = onSnapshot(
-          q,
-          (snapshot) => {
-            const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-            setRiskAnalysis(list);
-            setLoading(false);
-          },
-          (err) => {
-            fetchRiskSummary().then((data) => setRiskAnalysis([data])).catch((e) => setError(e.message)).finally(() => setLoading(false));
-          }
-        );
-        return () => unsub();
-      } catch {
-        fetchRiskSummary().then((data) => setRiskAnalysis([data])).catch((e) => setError(e.message)).finally(() => setLoading(false));
+    let unsub: (() => void) | null = null;
+    let isMounted = true;
+
+    async function loadData() {
+      if (db) {
+        try {
+          const q = collection(db, 'risk_analysis');
+          unsub = onSnapshot(
+            q,
+            async (snapshot) => {
+              const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+              if (list.length > 0) {
+                if (isMounted) {
+                  setRiskAnalysis(list);
+                  setLoading(false);
+                }
+              } else {
+                try {
+                  const data = await fetchRiskSummary();
+                  if (isMounted) setRiskAnalysis([data]);
+                } catch (e: any) {
+                  if (isMounted) setError(e.message);
+                } finally {
+                  if (isMounted) setLoading(false);
+                }
+              }
+            },
+            async () => {
+              try {
+                const data = await fetchRiskSummary();
+                if (isMounted) setRiskAnalysis([data]);
+              } catch (e: any) {
+                if (isMounted) setError(e.message);
+              } finally {
+                if (isMounted) setLoading(false);
+              }
+            }
+          );
+          return;
+        } catch {}
       }
-    } else {
-      fetchRiskSummary().then((data) => setRiskAnalysis([data])).catch((e) => setError(e.message)).finally(() => setLoading(false));
+
+      try {
+        const data = await fetchRiskSummary();
+        if (isMounted) setRiskAnalysis([data]);
+      } catch (e: any) {
+        if (isMounted) setError(e.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+      if (unsub) unsub();
+    };
   }, []);
 
   return { riskAnalysis, loading, error };
@@ -288,29 +514,62 @@ export function useOperationalInsights() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (db) {
-      try {
-        const unsub = onSnapshot(
-          doc(db, 'operational_insights', 'DAILY_INSIGHTS'),
-          (snapshot) => {
-            if (snapshot.exists()) {
-              setInsights({ id: snapshot.id, ...snapshot.data() });
-            } else {
-              setInsights(null);
+    let unsub: (() => void) | null = null;
+    let isMounted = true;
+
+    async function loadData() {
+      if (db) {
+        try {
+          unsub = onSnapshot(
+            doc(db, 'operational_insights', 'DAILY_INSIGHTS'),
+            async (snapshot) => {
+              if (snapshot.exists()) {
+                if (isMounted) {
+                  setInsights({ id: snapshot.id, ...snapshot.data() });
+                  setLoading(false);
+                }
+              } else {
+                try {
+                  const apiInsights = await fetchInsights();
+                  if (isMounted) setInsights(apiInsights);
+                } catch (e: any) {
+                  if (isMounted) setError(e.message);
+                } finally {
+                  if (isMounted) setLoading(false);
+                }
+              }
+            },
+            async () => {
+              try {
+                const apiInsights = await fetchInsights();
+                if (isMounted) setInsights(apiInsights);
+              } catch (e: any) {
+                if (isMounted) setError(e.message);
+              } finally {
+                if (isMounted) setLoading(false);
+              }
             }
-            setLoading(false);
-          },
-          (err) => {
-            fetchInsights().then(setInsights).catch((e) => setError(e.message)).finally(() => setLoading(false));
-          }
-        );
-        return () => unsub();
-      } catch {
-        fetchInsights().then(setInsights).catch((e) => setError(e.message)).finally(() => setLoading(false));
+          );
+          return;
+        } catch {}
       }
-    } else {
-      fetchInsights().then(setInsights).catch((e) => setError(e.message)).finally(() => setLoading(false));
+
+      try {
+        const apiInsights = await fetchInsights();
+        if (isMounted) setInsights(apiInsights);
+      } catch (e: any) {
+        if (isMounted) setError(e.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+      if (unsub) unsub();
+    };
   }, []);
 
   return { insights, loading, error };
