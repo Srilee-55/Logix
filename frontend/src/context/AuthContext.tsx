@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
-interface User {
+export interface User {
+  user_id: string;
   email: string;
   name: string;
+  created_at?: string;
+  last_login?: string;
 }
 
 interface AuthContextType {
@@ -24,11 +29,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
+  useEffect(() => {
+    if (user && db) {
+      const userId = user.user_id || `user_${user.email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+      try {
+        setDoc(
+          doc(db, 'users', userId),
+          {
+            user_id: userId,
+            email: user.email,
+            name: user.name,
+            last_login: new Date().toISOString(),
+          },
+          { merge: true }
+        ).catch((err) => console.warn('Firestore user sync warning:', err));
+      } catch (err) {
+        console.warn('Firestore user sync error:', err);
+      }
+    }
+  }, [user]);
+
   const login = async (email: string, name?: string) => {
     const displayName = name || email.split('@')[0] || 'User';
-    const userObj = { email, name: displayName };
+    const userId = `user_${email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    const userObj: User = {
+      user_id: userId,
+      email,
+      name: displayName,
+      created_at: new Date().toISOString(),
+      last_login: new Date().toISOString(),
+    };
+
     setUser(userObj);
     localStorage.setItem('logix_session_user', JSON.stringify(userObj));
+
+    if (db) {
+      try {
+        await setDoc(
+          doc(db, 'users', userId),
+          {
+            user_id: userId,
+            email: email,
+            name: displayName,
+            created_at: new Date().toISOString(),
+            last_login: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        console.warn('Firestore user sync on login warning:', err);
+      }
+    }
   };
 
   const logout = () => {
@@ -57,3 +108,4 @@ export const useAuth = () => {
   }
   return context;
 };
+
