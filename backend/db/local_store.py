@@ -42,7 +42,7 @@ class DocumentReference:
             self.set(data)
 
     def delete(self):
-        coll_data = self.collection.store.get(self.collection.name, {})
+        coll_data = self.collection.store._data.get(self.collection.name, {})
         if self.id in coll_data:
             del coll_data[self.id]
             self.collection.store._save()
