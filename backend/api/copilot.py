@@ -18,11 +18,12 @@ if str(_current_dir) not in sys.path:
     sys.path.insert(0, str(_current_dir))
 
 try:
-    from backend.config import GEMINI_API_KEY
-    from backend.db.firebase import get_db
-except ImportError:
     from config import GEMINI_API_KEY
     from db.firebase import get_db
+except ImportError:
+    from backend.config import GEMINI_API_KEY
+    from backend.db.firebase import get_db
+
 
 
 def process_copilot_query(query: str, context_order_id: str = None) -> Dict[str, Any]:

@@ -19,16 +19,6 @@ if str(_current_dir) not in sys.path:
     sys.path.insert(0, str(_current_dir))
 
 try:
-    from backend.db.firebase import get_db
-    from backend.ml.model import load_or_train_model
-    from backend.ml.predictor import (
-        predict_order_success, find_best_recommendation, compute_risk_level
-    )
-    from backend.api.models import (
-        OrderCreate, OrderUpdate, PredictRequest, SimulationRequest, CopilotRequest,
-        CustomerCreate, VehicleCreate, DriverCreate, PackageCreate
-    )
-except ImportError:
     from db.firebase import get_db
     from ml.model import load_or_train_model
     from ml.predictor import (
@@ -38,6 +28,17 @@ except ImportError:
         OrderCreate, OrderUpdate, PredictRequest, SimulationRequest, CopilotRequest,
         CustomerCreate, VehicleCreate, DriverCreate, PackageCreate
     )
+except ImportError:
+    from backend.db.firebase import get_db
+    from backend.ml.model import load_or_train_model
+    from backend.ml.predictor import (
+        predict_order_success, find_best_recommendation, compute_risk_level
+    )
+    from backend.api.models import (
+        OrderCreate, OrderUpdate, PredictRequest, SimulationRequest, CopilotRequest,
+        CustomerCreate, VehicleCreate, DriverCreate, PackageCreate
+    )
+
 
 
 router = APIRouter()

@@ -19,11 +19,12 @@ if str(_current_dir) not in sys.path:
     sys.path.insert(0, str(_current_dir))
 
 try:
-    from backend.config import MODEL_PATH
-    from backend.ml.features import FEATURE_NAMES, convert_history_record_to_features
-except ImportError:
     from config import MODEL_PATH
     from ml.features import FEATURE_NAMES, convert_history_record_to_features
+except ImportError:
+    from backend.config import MODEL_PATH
+    from backend.ml.features import FEATURE_NAMES, convert_history_record_to_features
+
 
 
 # Check if scikit-learn is available

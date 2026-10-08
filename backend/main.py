@@ -16,17 +16,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 try:
-    from backend.config import FRONTEND_URL, PORT, HOST
-    from backend.db.firebase import get_db
-    from backend.api.routes import router as api_router
-    from backend.api.copilot import process_copilot_query
-    from backend.api.models import CopilotRequest
-except ImportError:
     from config import FRONTEND_URL, PORT, HOST
     from db.firebase import get_db
     from api.routes import router as api_router
     from api.copilot import process_copilot_query
     from api.models import CopilotRequest
+except ImportError:
+    from backend.config import FRONTEND_URL, PORT, HOST
+    from backend.db.firebase import get_db
+    from backend.api.routes import router as api_router
+    from backend.api.copilot import process_copilot_query
+    from backend.api.models import CopilotRequest
+
 
 
 app = FastAPI(

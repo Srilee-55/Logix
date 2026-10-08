@@ -17,15 +17,16 @@ if str(_current_dir) not in sys.path:
     sys.path.insert(0, str(_current_dir))
 
 try:
-    from backend.ml.features import (
-        FEATURE_NAMES, extract_features_from_context, 
-        compute_vehicle_package_compatibility, PRIORITY_MAP, EXPERIENCE_MAP
-    )
-except ImportError:
     from ml.features import (
         FEATURE_NAMES, extract_features_from_context, 
         compute_vehicle_package_compatibility, PRIORITY_MAP, EXPERIENCE_MAP
     )
+except ImportError:
+    from backend.ml.features import (
+        FEATURE_NAMES, extract_features_from_context, 
+        compute_vehicle_package_compatibility, PRIORITY_MAP, EXPERIENCE_MAP
+    )
+
 
 
 def compute_risk_level(fail_prob: float) -> str:
