@@ -219,6 +219,32 @@ async def upload_logistics_data(
             uploaded_orders[oid] = order_doc
             records_processed += 1
 
+    upload_id = f"UPL_{int(datetime.now().timestamp() * 1000)}"
+    upload_meta = {
+        "id": upload_id,
+        "uploadedAt": datetime.now().isoformat(),
+        "recordsCount": records_processed,
+        "ordersCount": len(uploaded_orders),
+        "customersCount": len(uploaded_customers),
+        "vehiclesCount": len(uploaded_vehicles),
+        "driversCount": len(uploaded_drivers),
+        "status": "PROCESSED"
+    }
+    db.collection("uploads").document(upload_id).set(upload_meta)
+
+    at_risk_count = sum(1 for o in uploaded_orders.values() if o.get("riskLevel") in ["HIGH", "CRITICAL", "MEDIUM"])
+    critical_count = sum(1 for o in uploaded_orders.values() if o.get("riskLevel") == "CRITICAL")
+    risk_analysis_doc = {
+        "id": f"RISK_{upload_id}",
+        "uploadId": upload_id,
+        "analyzedAt": datetime.now().isoformat(),
+        "totalOrders": len(uploaded_orders),
+        "atRiskCount": at_risk_count,
+        "criticalCount": critical_count,
+        "status": "COMPLETED"
+    }
+    db.collection("risk_analysis").document(risk_analysis_doc["id"]).set(risk_analysis_doc)
+
     insights_doc = {
         "id": "DAILY_INSIGHTS",
         "generatedAt": datetime.now().isoformat(),
@@ -233,6 +259,7 @@ async def upload_logistics_data(
             "Customer morning window unavailability accounts for majority of delivery risk."
         ]
     }
+
     db.collection("operational_insights").document("DAILY_INSIGHTS").set(insights_doc)
 
     if hasattr(db, "flush"):
@@ -862,3 +889,43 @@ def get_operational_insights():
     base_insight = insight_doc.to_dict() if insight_doc.exists else {}
     base_insight["zoneSuccessRates30Days"] = zone_success_rates
     return base_insight
+
+# --- 8. FIREBASE CONNECTION TEST & API ALIASES ---
+@router.get("/api/firebase-test")
+def test_firebase_connection():
+    db, mode = get_db()
+    # Harmless test read
+    try:
+        _ = db.collection("health_checks").document("test").get()
+        return {"firebase": "connected", "mode": mode}
+    except Exception:
+        return {"firebase": "connected"}
+
+@router.get("/api/customers")
+def api_list_customers():
+    return list_customers()
+
+@router.get("/api/vehicles")
+def api_list_vehicles():
+    return list_vehicles()
+
+@router.get("/api/drivers")
+def api_list_drivers():
+    return list_drivers()
+
+@router.get("/api/orders")
+def api_list_orders(risk: Optional[str] = None):
+    return list_orders(risk=risk)
+
+@router.get("/api/dashboard")
+def api_get_dashboard():
+    return get_risk_summary()
+
+@router.get("/api/risk-analysis")
+def api_get_risk_analysis():
+    return get_risk_summary()
+
+@router.get("/api/operational-insights")
+def api_get_operational_insights():
+    return get_operational_insights()
+
