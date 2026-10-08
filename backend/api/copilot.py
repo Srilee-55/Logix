@@ -40,7 +40,16 @@ def process_copilot_query(query: str, context_order_id: str = None) -> Dict[str,
     drv_docs = db.collection("drivers").get()
     drivers = [d.to_dict() for d in drv_docs if d.exists]
 
+    if len(orders) == 0:
+        return {
+            "answer": "I don't have enough data in the current uploaded dataset to answer that.",
+            "grounded": True,
+            "engine": "LOGIX Firestore Grounded Engine",
+            "suggestedQuestions": get_suggested_questions()
+        }
+
     at_risk_orders = [o for o in orders if o.get("riskLevel") in ["CRITICAL", "HIGH", "MEDIUM"]]
+
     critical_orders = [o for o in orders if o.get("riskLevel") == "CRITICAL"]
 
     unreliable_custs = [c for c in customers if c.get("availabilityScore", 1.0) < 0.50 or c.get("rescheduleCount", 0) >= 4]

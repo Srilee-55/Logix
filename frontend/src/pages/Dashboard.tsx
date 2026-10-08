@@ -19,7 +19,7 @@ import {
   Cell,
 } from 'recharts';
 
-import { fetchRiskSummary, fetchOrders, fetchInsights } from '../services/api';
+import { useOrders, useCustomers, useVehicles, useDrivers, useOperationalInsights, useRiskAnalysis } from '../hooks/useFirestore';
 import { KPICard } from '../components/KPICard';
 import { RiskBadge } from '../components/RiskBadge';
 import { EmptyDataState } from '../components/EmptyDataState';
@@ -27,41 +27,38 @@ import { UploadDataModal } from '../components/forms/UploadDataModal';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [summary, setSummary] = useState<any>(null);
-  const [atRiskOrders, setAtRiskOrders] = useState<any[]>([]);
-  const [insights, setInsights] = useState<any>(null);
-  const [totalOrdersCount, setTotalOrdersCount] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { orders, loading: ordersLoading } = useOrders();
+  const { customers } = useCustomers();
+  const { vehicles } = useVehicles();
+  const { drivers } = useDrivers();
+  const { insights } = useOperationalInsights();
+  const { riskAnalysis } = useRiskAnalysis();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  const totalOrdersCount = orders.length;
+  const successfulCount = orders.filter((o: any) => (o.successProbability || 0.8) >= 0.5).length;
+  const atRiskOrders = orders.filter((o: any) => ['CRITICAL', 'HIGH', 'MEDIUM'].includes(o.riskLevel));
+  const criticalCount = orders.filter((o: any) => o.riskLevel === 'CRITICAL').length;
+  const highCount = orders.filter((o: any) => o.riskLevel === 'HIGH').length;
 
-  async function loadDashboardData() {
-    try {
-      setLoading(true);
-      setError(null);
-      const [sumRes, ordersRes, insightsRes] = await Promise.all([
-        fetchRiskSummary(),
-        fetchOrders().catch(() => []),
-        fetchInsights().catch(() => null),
-      ]);
-      setSummary(sumRes);
-      setTotalOrdersCount(ordersRes.length);
+  const avgSuccess = totalOrdersCount > 0
+    ? Math.round((orders.reduce((acc: number, o: any) => acc + (o.successProbability || 0.8), 0) / totalOrdersCount) * 100)
+    : 0;
 
-      const filtered = ordersRes.filter((o: any) =>
-        ['CRITICAL', 'HIGH', 'MEDIUM'].includes(o.riskLevel)
-      );
-      setAtRiskOrders(filtered.slice(0, 8));
-      setInsights(insightsRes);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const summary = {
+    headline: totalOrdersCount > 0 ? `Today's predicted delivery success: ${avgSuccess}%` : "No logistics data uploaded yet.",
+    predictedSuccessRate: avgSuccess,
+    totalDeliveries: totalOrdersCount,
+    successfulDeliveries: successfulCount,
+    atRiskDeliveries: atRiskOrders.length,
+    criticalRiskCount: criticalCount,
+    highRiskCount: highCount,
+    vehiclesActive: vehicles.length,
+    driversActive: drivers.length,
+  };
+
+  const loading = ordersLoading;
+
 
   if (loading) {
     return (
@@ -76,22 +73,7 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-8">
-        <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-6">
-          <h3 className="font-bold text-lg mb-1">Error Loading Dashboard</h3>
-          <p className="text-sm">{error}</p>
-          <button
-            onClick={loadDashboardData}
-            className="mt-3 px-4 py-2 bg-rose-600 text-white font-bold text-xs rounded-lg cursor-pointer"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+
 
   const chartData = [
     { name: 'Low Risk', count: Math.max(0, (summary?.totalDeliveries || 0) - (summary?.atRiskDeliveries || 0)), color: '#10b981' },
@@ -312,12 +294,12 @@ export const Dashboard: React.FC = () => {
         </>
       )}
 
-      {/* File Upload Modal */}
       <UploadDataModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        onSuccess={loadDashboardData}
+        onSuccess={() => setIsUploadModalOpen(false)}
       />
+
     </div>
   );
 };

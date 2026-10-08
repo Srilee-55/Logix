@@ -1,29 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Upload } from 'lucide-react';
-import { fetchCustomers } from '../services/api';
+import { useCustomers } from '../hooks/useFirestore';
 import { EmptyDataState } from '../components/EmptyDataState';
 import { UploadDataModal } from '../components/forms/UploadDataModal';
 
 export const Customers: React.FC = () => {
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { customers, loading } = useCustomers();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  useEffect(() => {
-    loadCustomers();
-  }, []);
-
-  async function loadCustomers() {
-    try {
-      setLoading(true);
-      const data = await fetchCustomers().catch(() => []);
-      setCustomers(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -153,8 +137,9 @@ export const Customers: React.FC = () => {
       <UploadDataModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        onSuccess={loadCustomers}
+        onSuccess={() => setIsUploadOpen(false)}
       />
+
     </div>
   );
 };

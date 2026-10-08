@@ -1,29 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Truck, Thermometer, ShieldCheck, Upload } from 'lucide-react';
-import { fetchVehicles } from '../services/api';
+import { useVehicles } from '../hooks/useFirestore';
 import { EmptyDataState } from '../components/EmptyDataState';
 import { UploadDataModal } from '../components/forms/UploadDataModal';
 
 export const Vehicles: React.FC = () => {
-  const [vehicles, setVehicles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { vehicles, loading } = useVehicles();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  useEffect(() => {
-    loadVehicles();
-  }, []);
-
-  async function loadVehicles() {
-    try {
-      setLoading(true);
-      const data = await fetchVehicles().catch(() => []);
-      setVehicles(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -142,8 +126,9 @@ export const Vehicles: React.FC = () => {
       <UploadDataModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        onSuccess={loadVehicles}
+        onSuccess={() => setIsUploadOpen(false)}
       />
+
     </div>
   );
 };

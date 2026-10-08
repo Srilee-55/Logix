@@ -10,35 +10,18 @@ import {
   Cell,
 } from 'recharts';
 
-import { fetchInsights, fetchOrders } from '../services/api';
+import { useOperationalInsights, useOrders } from '../hooks/useFirestore';
 import { EmptyDataState } from '../components/EmptyDataState';
 import { UploadDataModal } from '../components/forms/UploadDataModal';
 
 export const Insights: React.FC = () => {
-  const [insights, setInsights] = useState<any>(null);
-  const [hasData, setHasData] = useState(true);
-  const [loading, setLoading] = useState(true);
+  const { insights, loading: insightsLoading } = useOperationalInsights();
+  const { orders, loading: ordersLoading } = useOrders();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  useEffect(() => {
-    loadInsights();
-  }, []);
+  const hasData = orders.length > 0;
+  const loading = insightsLoading || ordersLoading;
 
-  async function loadInsights() {
-    try {
-      setLoading(true);
-      const [data, orders] = await Promise.all([
-        fetchInsights().catch(() => null),
-        fetchOrders().catch(() => []),
-      ]);
-      setInsights(data);
-      setHasData(orders.length > 0);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -179,8 +162,9 @@ export const Insights: React.FC = () => {
       <UploadDataModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        onSuccess={loadInsights}
+        onSuccess={() => setIsUploadOpen(false)}
       />
+
     </div>
   );
 };

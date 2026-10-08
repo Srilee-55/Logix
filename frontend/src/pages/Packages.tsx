@@ -1,29 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Package, Snowflake, AlertTriangle, ShieldCheck, Clock, Upload } from 'lucide-react';
-import { fetchPackages } from '../services/api';
+import { usePackages } from '../hooks/useFirestore';
 import { EmptyDataState } from '../components/EmptyDataState';
 import { UploadDataModal } from '../components/forms/UploadDataModal';
 
 export const Packages: React.FC = () => {
-  const [packages, setPackages] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { packages, loading } = usePackages();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  const loadPackages = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchPackages().catch(() => []);
-      setPackages(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadPackages();
-  }, []);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -118,8 +102,9 @@ export const Packages: React.FC = () => {
       <UploadDataModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        onSuccess={loadPackages}
+        onSuccess={() => setIsUploadOpen(false)}
       />
+
     </div>
   );
 };

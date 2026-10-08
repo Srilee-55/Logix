@@ -1,36 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { UserCheck, Sparkles, CheckCircle2, Upload } from 'lucide-react';
-import { fetchDrivers } from '../services/api';
+import { useDrivers } from '../hooks/useFirestore';
 import { EmptyDataState } from '../components/EmptyDataState';
 import { UploadDataModal } from '../components/forms/UploadDataModal';
 
 export const Drivers: React.FC = () => {
-  const [drivers, setDrivers] = useState<any[]>([]);
-  const [highWorkloadDrivers, setHighWorkloadDrivers] = useState<any[]>([]);
-  const [lowWorkloadDrivers, setLowWorkloadDrivers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { drivers, loading } = useDrivers();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  useEffect(() => {
-    loadDrivers();
-  }, []);
+  const highWorkloadDrivers = drivers.filter((d: any) => d.workloadScore > 80);
+  const lowWorkloadDrivers = drivers.filter((d: any) => d.workloadScore < 50);
 
-  async function loadDrivers() {
-    try {
-      setLoading(true);
-      const data = await fetchDrivers().catch(() => []);
-      setDrivers(data);
-
-      const high = data.filter((d: any) => d.workloadScore > 80);
-      const low = data.filter((d: any) => d.workloadScore < 50);
-      setHighWorkloadDrivers(high);
-      setLowWorkloadDrivers(low);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -150,8 +130,9 @@ export const Drivers: React.FC = () => {
       <UploadDataModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        onSuccess={loadDrivers}
+        onSuccess={() => setIsUploadOpen(false)}
       />
+
     </div>
   );
 };

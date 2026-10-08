@@ -1,36 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PackageCheck, ArrowRight, Search, Upload } from 'lucide-react';
-import { fetchOrders } from '../services/api';
+import { useOrders } from '../hooks/useFirestore';
 import { RiskBadge } from '../components/RiskBadge';
 import { EmptyDataState } from '../components/EmptyDataState';
 import { UploadDataModal } from '../components/forms/UploadDataModal';
 
 export const Orders: React.FC = () => {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<any[]>([]);
+  const { orders, loading } = useOrders();
   const [filtered, setFiltered] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState('ALL');
-  const [loading, setLoading] = useState(true);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  useEffect(() => {
-    loadOrders();
-  }, []);
-
-  async function loadOrders() {
-    try {
-      setLoading(true);
-      const data = await fetchOrders().catch(() => []);
-      setOrders(data);
-      setFiltered(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   useEffect(() => {
     let result = orders;
@@ -171,8 +154,9 @@ export const Orders: React.FC = () => {
       <UploadDataModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        onSuccess={loadOrders}
+        onSuccess={() => setIsUploadOpen(false)}
       />
+
     </div>
   );
 };

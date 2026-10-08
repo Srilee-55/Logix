@@ -1,35 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ShieldAlert, Upload } from 'lucide-react';
-import { fetchOrders } from '../services/api';
+import { useOrders } from '../hooks/useFirestore';
 import { RiskBadge } from '../components/RiskBadge';
 import { EmptyDataState } from '../components/EmptyDataState';
 import { UploadDataModal } from '../components/forms/UploadDataModal';
 
 export const AtRisk: React.FC = () => {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { orders: allOrders, loading } = useOrders();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  useEffect(() => {
-    loadAtRisk();
-  }, []);
+  const orders = allOrders.filter((o: any) =>
+    ['CRITICAL', 'HIGH', 'MEDIUM'].includes(o.riskLevel)
+  );
 
-  async function loadAtRisk() {
-    try {
-      setLoading(true);
-      const data = await fetchOrders().catch(() => []);
-      const filtered = data.filter((o: any) =>
-        ['CRITICAL', 'HIGH', 'MEDIUM'].includes(o.riskLevel)
-      );
-      setOrders(filtered);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -129,8 +114,9 @@ export const AtRisk: React.FC = () => {
       <UploadDataModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        onSuccess={loadAtRisk}
+        onSuccess={() => setIsUploadOpen(false)}
       />
+
     </div>
   );
 };
