@@ -171,3 +171,17 @@ export async function askCopilot(query: string) {
   if (!res.ok) throw new Error('Failed to query Copilot');
   return res.json();
 }
+
+export async function fetchTop5Recommendations() {
+  const res = await fetch(getUrl('/api/recommendations/top-5'));
+  if (!res.ok) throw new Error('Failed to fetch recommendations');
+  return res.json();
+}
+
+export async function prioritizeOrderApi(orderId: string) {
+  const res = await fetch(getUrl(`/api/orders/${orderId}/prioritize`), {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('Failed to prioritize order');
+  return res.json();
+}

@@ -24,6 +24,7 @@ import { KPICard } from '../components/KPICard';
 import { RiskBadge } from '../components/RiskBadge';
 import { EmptyDataState } from '../components/EmptyDataState';
 import { UploadDataModal } from '../components/forms/UploadDataModal';
+import { Top5NearbyLowRisk } from '../components/Top5NearbyLowRisk';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -170,6 +171,8 @@ export const Dashboard: React.FC = () => {
               color="rose"
             />
           </div>
+
+          <Top5NearbyLowRisk />
 
           {/* Main Grid: At-Risk Table + Risk Chart */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

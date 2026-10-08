@@ -1,6 +1,6 @@
-order_id,customer_id,customer_name,zone,phone,address,best_delivery_window,vehicle_id,vehicle_number,vehicle_type,capacity,driver_id,driver_name,package_category,priority,deadline
-O1001,C1001,Apex Healthcare,Zone A,555-0101,123 Health Ave,morning,V101,LOG-V101,Refrigerated Van,200,D101,Marcus Vance,Medicine,CRITICAL,12:00
-O1002,C1002,Metro Fresh Foods,Zone B,555-0102,456 Market St,evening,V102,LOG-V102,Standard Van,180,D102,Sarah Jenkins,Frozen,HIGH,18:00
-O1003,C1003,TechWorld Electronics,Zone A,555-0103,789 Tech Park,afternoon,V103,LOG-V103,Express Sprinter,150,D103,Robert Chen,Electronics,MEDIUM,16:00
-O1004,C1004,Global Pharma,Zone C,555-0104,321 Bio Way,morning,V101,LOG-V101,Refrigerated Van,200,D101,Marcus Vance,Medicine,CRITICAL,11:30
-O1005,C1005,Urban Retailers,Zone B,555-0105,654 Fashion St,midday,V104,LOG-V104,Standard Van,220,D104,Elena Rostova,Clothing,LOW,15:00
+order_id,customer_id,customer_name,zone,phone,address,window,vehicle_id,vehicle_number,vehicle_type,capacity,driver_id,driver_name,package_category,priority,deadline,distance_km,traffic_level
+O1001,C1001,Apex Healthcare,Zone A,555-0101,123 Health Ave,morning,V101,LOG-V101,Standard Van,200,D101,Marcus Vance,Frozen,CRITICAL,12:00,3.5,Low
+O1002,C1002,Metro Fresh Foods,Zone B,555-0102,456 Market St,morning,V102,LOG-V102,Standard Van,180,D102,Sarah Jenkins,Medicine,HIGH,18:00,8.2,Low
+O1003,C1003,TechWorld Electronics,Zone A,555-0103,789 Tech Park,evening,V103,LOG-V103,Standard Van,150,D103,Robert Chen,General,LOW,16:00,12.0,Medium
+O1004,C1004,Global Pharma,Zone C,555-0104,321 Bio Way,evening,V101,LOG-V101,Standard Van,200,D101,Marcus Vance,General,LOW,19:30,2.1,Low
+O1005,C1005,Urban Retailers,Zone B,555-0105,654 Fashion St,evening,V104,LOG-V104,Standard Van,220,D104,Elena Rostova,General,LOW,15:00,5.4,Low

@@ -183,6 +183,17 @@ async def upload_logistics_data(
             }
             db.collection("packages").document(pid).set(pkg_doc)
 
+            # Parse optional distance and traffic
+            dist_val = norm_row.get("distance_km") or norm_row.get("distance")
+            try:
+                dist_km = float(dist_val) if dist_val is not None and str(dist_val).strip() != "" else None
+            except ValueError:
+                dist_km = None
+                
+            traffic = str(norm_row.get("traffic_level") or norm_row.get("traffic") or "")
+            if not traffic:
+                traffic = None
+
             order_doc = {
                 "id": oid,
                 "customerId": cid,
@@ -197,6 +208,8 @@ async def upload_logistics_data(
                 "assignedVehicleId": vid,
                 "assignedDriverId": did,
                 "zone": czone,
+                "distance_km": dist_km,
+                "traffic_level": traffic.capitalize() if traffic else None,
                 "createdAt": datetime.now().isoformat()
             }
 
@@ -929,3 +942,103 @@ def api_get_risk_analysis():
 def api_get_operational_insights():
     return get_operational_insights()
 
+@router.get("/api/recommendations/top-5")
+def get_top_5_nearby_low_risk_deliveries():
+    db, _ = get_db_and_model()
+    
+    # 1. Fetch orders and customers
+    orders_docs = db.collection("orders").get()
+    orders = [doc.to_dict() for doc in orders_docs if doc.exists]
+    
+    cust_docs = db.collection("customers").get()
+    customers_map = {doc.id: doc.to_dict() for doc in cust_docs if doc.exists}
+    
+    eligible_orders = []
+    
+    for order in orders:
+        if order.get("recommendation_status") == "recommended_first":
+            continue
+            
+        if order.get("riskLevel") != "LOW":
+            continue
+            
+        dist_km = order.get("distance_km")
+        if dist_km is None:
+            continue
+            
+        cid = order.get("customerId")
+        customer = customers_map.get(cid)
+        if not customer:
+            continue
+            
+        # Feature calculations
+        norm_dist = min(dist_km / 50.0, 1.0) 
+        proximity_score = (1.0 - norm_dist) * 100
+        
+        risk_level = order.get("riskLevel", "LOW")
+        fail_prob = order.get("failureProbability", 0.1)
+        low_risk_score = (1.0 - fail_prob) * 100
+        
+        availability = customer.get("availabilityScore", 0.85)
+        failed_deliveries = customer.get("failedDeliveries", 0)
+        total_deliveries = customer.get("successfulDeliveries", 10) + failed_deliveries
+        if total_deliveries == 0: total_deliveries = 1
+        success_rate = customer.get("successfulDeliveries", 10) / total_deliveries
+        reliability_score = ((availability + success_rate) / 2.0) * 100
+        
+        traffic = order.get("traffic_level") or "Low"
+        traffic_map = {"Low": 100, "Medium": 70, "High": 30, "Severe": 0}
+        traffic_score = traffic_map.get(traffic, 80)
+        
+        requested_window = order.get("requestedWindow", "morning")
+        window_success = customer.get("windowSuccessRates", {}).get(requested_window, 0.7)
+        window_score = window_success * 100
+        
+        recommendation_score = (
+            0.40 * low_risk_score +
+            0.30 * proximity_score +
+            0.15 * reliability_score +
+            0.10 * traffic_score +
+            0.05 * window_score
+        )
+        
+        traffic_str = traffic.lower() if traffic else "low"
+        reason = f"Recommended first because it is {dist_km} km away, has {traffic_str} traffic, and the customer has a {int(reliability_score)}% reliability score with {failed_deliveries} previous failed deliveries."
+        
+        eligible_orders.append({
+            "order_id": order.get("id"),
+            "customer_id": cid,
+            "customer_name": customer.get("name", "Unknown"),
+            "delivery_location": customer.get("location", "Unknown"),
+            "distance_km": dist_km,
+            "traffic_level": traffic,
+            "risk_score": int(fail_prob * 100),
+            "risk_level": risk_level,
+            "reliability_score": int(reliability_score),
+            "previous_failed_deliveries": failed_deliveries,
+            "delivery_window": order.get("requestedTime", "Unknown"),
+            "recommendation_score": int(recommendation_score),
+            "why_reason": reason
+        })
+        
+    eligible_orders.sort(key=lambda x: x["recommendation_score"], reverse=True)
+    top_5 = eligible_orders[:5]
+    
+    return {
+        "recommendations": top_5,
+        "count": len(top_5)
+    }
+
+@router.post("/api/orders/{order_id}/prioritize")
+def prioritize_order(order_id: str):
+    db, _ = get_db_and_model()
+    doc_ref = db.collection("orders").document(order_id)
+    doc = doc_ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Order not found")
+        
+    order = doc.to_dict()
+    order["recommendation_status"] = "recommended_first"
+    doc_ref.set(order)
+    
+    return {"message": f"Order {order_id} has been prioritized for delivery.", "order": order}

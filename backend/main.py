@@ -62,6 +62,20 @@ app.include_router(api_router)
 def copilot_query(payload: CopilotRequest):
     return process_copilot_query(payload.query)
 
+@app.get("/debug")
+def debug_info():
+    import os
+    try:
+        import firebase_admin
+        has_admin = True
+    except ImportError as e:
+        has_admin = str(e)
+    return {
+        "FIREBASE_ADMIN_INSTALLED": has_admin,
+        "GOOGLE_APPLICATION_CREDENTIALS": os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+        "CWD": os.getcwd()
+    }
+
 @app.get("/health")
 def health_check():
     _, mode = get_db()
