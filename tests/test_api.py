@@ -113,3 +113,10 @@ def test_copilot_query_endpoint():
     assert "answer" in data
     assert data["grounded"] is True
 
+def test_firebase_connection_endpoint():
+    res = client.get("/api/firebase-test")
+    assert res.status_code == 200
+    data = res.json()
+    assert data.get("firebase") == "connected"
+
+
