@@ -6,9 +6,24 @@ with an intent-routed deterministic fallback engine computed directly from Fires
 
 import os
 import re
+import sys
+from pathlib import Path
 from typing import Dict, Any, List
-from backend.config import GEMINI_API_KEY
-from backend.db.firebase import get_db
+
+_current_dir = Path(__file__).resolve().parent.parent
+_parent_dir = _current_dir.parent
+if str(_parent_dir) not in sys.path:
+    sys.path.insert(0, str(_parent_dir))
+if str(_current_dir) not in sys.path:
+    sys.path.insert(0, str(_current_dir))
+
+try:
+    from backend.config import GEMINI_API_KEY
+    from backend.db.firebase import get_db
+except ImportError:
+    from config import GEMINI_API_KEY
+    from db.firebase import get_db
+
 
 def process_copilot_query(query: str, context_order_id: str = None) -> Dict[str, Any]:
     db, _ = get_db()

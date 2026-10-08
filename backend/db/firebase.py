@@ -2,14 +2,32 @@ import os
 import sys
 from pathlib import Path
 
-from backend.config import (
-    FIREBASE_PROJECT_ID,
-    FIREBASE_CLIENT_EMAIL,
-    FIREBASE_PRIVATE_KEY,
-    GOOGLE_APPLICATION_CREDENTIALS,
-    FIRESTORE_EMULATOR_HOST,
-)
-from backend.db.local_store import LocalFirestoreStore
+_current_dir = Path(__file__).resolve().parent.parent
+_parent_dir = _current_dir.parent
+if str(_parent_dir) not in sys.path:
+    sys.path.insert(0, str(_parent_dir))
+if str(_current_dir) not in sys.path:
+    sys.path.insert(0, str(_current_dir))
+
+try:
+    from backend.config import (
+        FIREBASE_PROJECT_ID,
+        FIREBASE_CLIENT_EMAIL,
+        FIREBASE_PRIVATE_KEY,
+        GOOGLE_APPLICATION_CREDENTIALS,
+        FIRESTORE_EMULATOR_HOST,
+    )
+    from backend.db.local_store import LocalFirestoreStore
+except ImportError:
+    from config import (
+        FIREBASE_PROJECT_ID,
+        FIREBASE_CLIENT_EMAIL,
+        FIREBASE_PRIVATE_KEY,
+        GOOGLE_APPLICATION_CREDENTIALS,
+        FIRESTORE_EMULATOR_HOST,
+    )
+    from db.local_store import LocalFirestoreStore
+
 
 db_instance = None
 db_mode = "unknown"

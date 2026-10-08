@@ -4,13 +4,29 @@ Calculates delivery success probability, risk level, plain-language contributing
 and candidate recommendations to prevent delivery failure.
 """
 
+import sys
+from pathlib import Path
 from typing import Dict, Any, List, Tuple
 import numpy as np
 
-from backend.ml.features import (
-    FEATURE_NAMES, extract_features_from_context, 
-    compute_vehicle_package_compatibility, PRIORITY_MAP, EXPERIENCE_MAP
-)
+_current_dir = Path(__file__).resolve().parent.parent
+_parent_dir = _current_dir.parent
+if str(_parent_dir) not in sys.path:
+    sys.path.insert(0, str(_parent_dir))
+if str(_current_dir) not in sys.path:
+    sys.path.insert(0, str(_current_dir))
+
+try:
+    from backend.ml.features import (
+        FEATURE_NAMES, extract_features_from_context, 
+        compute_vehicle_package_compatibility, PRIORITY_MAP, EXPERIENCE_MAP
+    )
+except ImportError:
+    from ml.features import (
+        FEATURE_NAMES, extract_features_from_context, 
+        compute_vehicle_package_compatibility, PRIORITY_MAP, EXPERIENCE_MAP
+    )
+
 
 def compute_risk_level(fail_prob: float) -> str:
     if fail_prob > 0.70:

@@ -5,13 +5,26 @@ Features a built-in numpy fallback classifier for light-weight zero-dependency e
 """
 
 import os
+import sys
 import joblib
 import numpy as np
 from pathlib import Path
 from typing import Dict, Any, Tuple
 
-from backend.config import MODEL_PATH
-from backend.ml.features import FEATURE_NAMES, convert_history_record_to_features
+_current_dir = Path(__file__).resolve().parent.parent
+_parent_dir = _current_dir.parent
+if str(_parent_dir) not in sys.path:
+    sys.path.insert(0, str(_parent_dir))
+if str(_current_dir) not in sys.path:
+    sys.path.insert(0, str(_current_dir))
+
+try:
+    from backend.config import MODEL_PATH
+    from backend.ml.features import FEATURE_NAMES, convert_history_record_to_features
+except ImportError:
+    from config import MODEL_PATH
+    from ml.features import FEATURE_NAMES, convert_history_record_to_features
+
 
 # Check if scikit-learn is available
 try:

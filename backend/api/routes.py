@@ -4,20 +4,41 @@ Exposes RESTful endpoints for dynamic CRUD, file uploads, orders, predictions, r
 """
 
 import io
+import sys
+from pathlib import Path
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from backend.db.firebase import get_db
-from backend.ml.model import load_or_train_model
-from backend.ml.predictor import (
-    predict_order_success, find_best_recommendation, compute_risk_level
-)
-from backend.api.models import (
-    OrderCreate, OrderUpdate, PredictRequest, SimulationRequest, CopilotRequest,
-    CustomerCreate, VehicleCreate, DriverCreate, PackageCreate
-)
+_current_dir = Path(__file__).resolve().parent.parent
+_parent_dir = _current_dir.parent
+if str(_parent_dir) not in sys.path:
+    sys.path.insert(0, str(_parent_dir))
+if str(_current_dir) not in sys.path:
+    sys.path.insert(0, str(_current_dir))
+
+try:
+    from backend.db.firebase import get_db
+    from backend.ml.model import load_or_train_model
+    from backend.ml.predictor import (
+        predict_order_success, find_best_recommendation, compute_risk_level
+    )
+    from backend.api.models import (
+        OrderCreate, OrderUpdate, PredictRequest, SimulationRequest, CopilotRequest,
+        CustomerCreate, VehicleCreate, DriverCreate, PackageCreate
+    )
+except ImportError:
+    from db.firebase import get_db
+    from ml.model import load_or_train_model
+    from ml.predictor import (
+        predict_order_success, find_best_recommendation, compute_risk_level
+    )
+    from api.models import (
+        OrderCreate, OrderUpdate, PredictRequest, SimulationRequest, CopilotRequest,
+        CustomerCreate, VehicleCreate, DriverCreate, PackageCreate
+    )
+
 
 router = APIRouter()
 

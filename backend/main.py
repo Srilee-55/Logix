@@ -1,15 +1,33 @@
 import os
+import sys
 from pathlib import Path
+
+# Ensure project root and backend folder are in sys.path
+_current_dir = Path(__file__).resolve().parent
+_parent_dir = _current_dir.parent
+if str(_parent_dir) not in sys.path:
+    sys.path.insert(0, str(_parent_dir))
+if str(_current_dir) not in sys.path:
+    sys.path.insert(0, str(_current_dir))
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from backend.config import FRONTEND_URL, PORT, HOST
-from backend.db.firebase import get_db
-from backend.api.routes import router as api_router
-from backend.api.copilot import process_copilot_query
-from backend.api.models import CopilotRequest
+try:
+    from backend.config import FRONTEND_URL, PORT, HOST
+    from backend.db.firebase import get_db
+    from backend.api.routes import router as api_router
+    from backend.api.copilot import process_copilot_query
+    from backend.api.models import CopilotRequest
+except ImportError:
+    from config import FRONTEND_URL, PORT, HOST
+    from db.firebase import get_db
+    from api.routes import router as api_router
+    from api.copilot import process_copilot_query
+    from api.models import CopilotRequest
+
 
 app = FastAPI(
     title="LOGIX — AI Delivery Success Intelligence",
