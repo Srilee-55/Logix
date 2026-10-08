@@ -11,7 +11,8 @@ if backend_env_path.exists():
 elif root_env_path.exists():
     load_dotenv(dotenv_path=root_env_path)
 
-FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "logix-ai-demo")
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "logix-74013")
+
 FIREBASE_CLIENT_EMAIL = os.getenv("FIREBASE_CLIENT_EMAIL")
 FIREBASE_PRIVATE_KEY = os.getenv("FIREBASE_PRIVATE_KEY")
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
